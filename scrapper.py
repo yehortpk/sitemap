@@ -1,42 +1,23 @@
 import aiohttp
+from aiohttp import ClientTimeout
 
-from models import ScrappingResult, ScrapperConfig
-
-def import_config():
-    import json
-    import os
-
-    CONFIG_FILEPATH = 'scrapper.json'
-
-    if not os.path.exists(CONFIG_FILEPATH):
-        print("scrapper.json doesn't exist, load default scrapper parameters")
-        return ScrapperConfig()
-
-    with open(CONFIG_FILEPATH, 'r') as file:
-        data:dict[str, any] = json.load(file)
-        return ScrapperConfig(
-            headers=data.get('headers'),
-            timeout_ms=data.get('timeout_ms'),
-            cookies=data.get('cookies'),
-            proxy=data.get('proxy')
-        )
-
-
+from config import ScrapperConfig
+from models import ScrappingResult
 
 class StaticScrapper:
     def __init__(self, url: str):
         self.url = url
 
+
     async def fetch(self) -> ScrappingResult:
-        config: ScrapperConfig = import_config()
+        config: ScrapperConfig = ScrapperConfig(self.url)
 
         async with aiohttp.ClientSession(
                 headers=config.headers,
                 cookies=config.cookies,
-                proxy=config.proxy,
-                timeout=config.timeout_ms
+                timeout=ClientTimeout(total=config.timeout_ms/1000)
         ) as session:
-            async with session.get(self.url) as response:
+            async with session.get(self.url, proxy=config.proxy) as response:
                 html = await response.text()
                 result = ScrappingResult(
                     url=str(response.url),
