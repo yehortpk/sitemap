@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 import aiohttp
 from aiohttp import ClientTimeout
 
@@ -7,6 +9,7 @@ from models import ScrappingResult
 class StaticScrapper:
     def __init__(self, url: str):
         self.url = url
+        self.hostname =  urlparse(url).hostname
 
 
     async def fetch(self) -> ScrappingResult:
