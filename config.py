@@ -34,7 +34,7 @@ class ScrapperConfig:
 
     @staticmethod
     def _load_config_data(url: str) -> dict:
-        CONFIG_FILEPATH = 'scrapper.json'
+        CONFIG_FILEPATH = "scrapper.json"
 
         if not os.path.exists(CONFIG_FILEPATH):
             print("scrapper.json doesn't exist, loading default parameters")
