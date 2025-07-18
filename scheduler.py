@@ -20,15 +20,17 @@ class Scheduler:
             self._queue.put(url)
             self._visited.add(url)
 
-    def add_links_to_queue(self, task: asyncio.Task[list[str]]) -> None:
+    def add_links_to_queue(self, task: asyncio.Task[dict[str, set[str]]]) -> None:
         """
         Done callback for _runner.handle_request(url). Adds parsed links
         from the `url` page
         :param task: executed task
         :return:
         """
-        for link in task.result():
-            self.enqueue(link)
+        result = task.result()
+        for domain in result:
+            for link in result[domain]:
+                self.enqueue(link)
 
     async def run(self):
         while self._queue:
