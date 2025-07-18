@@ -1,5 +1,7 @@
+import re
 from urllib.parse import urldefrag, urlparse
 from urllib.robotparser import RobotFileParser
+from collections import defaultdict
 
 from lxml import html
 
@@ -9,41 +11,67 @@ class HTMLParser:
         self.content = content
         self.tree = html.fromstring(self.content)
 
-    def extract_links(self, hostname: str = None) -> dict[str, list[str]]:
-        if hostname:
-            hostname = self._extract_hostname(hostname)
-            self.tree.make_links_absolute(hostname)
+    def extract_links(self, base_url: str = None, domain:str = None) -> dict[str, set[str]]:
+        """
+        Extracts links from `tree`
+        :param base_url:
+        :param domain:
+        :return:
+        """
+        if base_url:
+            self.tree.make_links_absolute(base_url)
 
-        links = {}
+        links: dict[str, set] = {}
 
         for element, attribute, link, pos in self.tree.iterlinks():
             if element.tag == 'a' and attribute == "href":
-                link_hostname, url = self._extract_hostname(link), urldefrag(link).url
-                if link_hostname is None and hostname:
-                    link_hostname = hostname
+                link_domain, url = self._extract_domain(link), urldefrag(link).url
+                if link_domain is None and domain:
+                    link_domain = domain
 
-                host_links: list[str] = links.get(link_hostname, [])
-                host_links.append(url)
-                links[link_hostname] = host_links
+                domain_links = links.get(link_domain, set())
+                domain_links.add(url)
+                links[link_domain] = domain_links
 
         return links
 
-    def extract_same_host_links(self, hostname: str):
-        hostname = self._extract_hostname(hostname)
-        return self.extract_links(hostname).get(hostname, [])
+    def extract_same_domain_links(self, domain: str) -> dict[str, list[str]]:
+        """
+        Extracts links from the same domain
+        :param domain:
+        :return:
+        """
+        same_domain_links = defaultdict(list)
+        domain = self._extract_domain(domain)
 
-    def _extract_hostname(self, url):
-        parsed_url = urlparse(url)
+        links = self.extract_links(domain)
+        for links_domain in links:
+            if links_domain and links_domain.endswith(domain):
+                same_domain_links[links_domain].extend(links[links_domain])
 
-        if not parsed_url.netloc:
+        return same_domain_links
+
+    @staticmethod
+    def _extract_domain(url: str):
+        if not url:
             return None
 
-        if parsed_url.scheme:
-            hostname = parsed_url.scheme + "://" + parsed_url.netloc
-        else:
-            hostname = "https://" + parsed_url.netloc
+        #In case scheme not specified
+        if not url.startswith("https://"):
+            url = "https://" + url
 
-        return hostname
+        domain = urlparse(url).netloc
+
+        domain_regex = re.compile(
+            r'^(?:[a-zA-Z0-9]'  # First character of the domain
+            r'(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+'  # Sub domain + hostname
+            r'[a-zA-Z]{2,}$'  # TLD
+        )
+
+        if not url or not domain_regex.match(domain):
+            return None
+
+        return domain
 
 
 class RobotsParser:
