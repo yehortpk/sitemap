@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urldefrag, urlparse
+from urllib.parse import urldefrag, urlparse, urlunparse
 from urllib.robotparser import RobotFileParser
 from collections import defaultdict
 
@@ -25,7 +25,7 @@ class HTMLParser:
 
         for element, attribute, link, pos in self.tree.iterlinks():
             if element.tag == 'a' and attribute == "href":
-                link_domain, url = self._extract_domain(link), urldefrag(link).url
+                link_domain, url = self._extract_domain(link), self._normalize_url(link)
                 if link_domain is None and domain:
                     link_domain = domain
 
@@ -72,6 +72,25 @@ class HTMLParser:
             return None
 
         return domain
+
+    @staticmethod
+    def _normalize_url(url: str):
+        parsed = urlparse(url)
+        scheme, netloc, path, params, query, fragment = parsed
+
+        if not scheme:
+            # Check if netloc is empty; if so, treat path as netloc
+            if not netloc and path and '.' in path.split('/')[0]:
+                netloc = path.split('/')[0]
+                path = '/' + '/'.join(path.split('/')[1:])
+            scheme = "https://"
+
+        if not netloc and path:
+            # In case the URL is just a path without domain, leave it as-is
+            return urlunparse((scheme, '', path, params, query, ''))
+
+        normalized = urlunparse((scheme, netloc, path, params, query, ''))
+        return normalized
 
 
 class RobotsParser:
