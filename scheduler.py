@@ -4,7 +4,7 @@ import time
 from urllib.parse import urlparse
 
 from config import ScrapperConfig
-from runner import ScrapperRunner
+from executor import TaskExecutor
 
 
 class Scheduler:
@@ -12,7 +12,7 @@ class Scheduler:
         self._queue = queue.Queue()
         self._host_last_request: dict[str, float] = {}
         self._visited = set()
-        self._runner = ScrapperRunner()
+        self._executor = TaskExecutor()
         self._tasks = []
 
     def enqueue(self, url: str):
@@ -48,7 +48,7 @@ class Scheduler:
                 await asyncio.sleep(next_allowed_time - now)
 
             # Schedule the task
-            task = asyncio.create_task(self._runner.handle_request(url))
+            task = asyncio.create_task(self._executor.fetch_links(url))
             self._tasks.append(task)
             task.add_done_callback(self.add_links_to_queue)
 

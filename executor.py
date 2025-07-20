@@ -10,9 +10,17 @@ from scrapper import StaticScrapper
 logger = logging.getLogger(__name__)
 
 
-class ScrapperRunner:
+class TaskExecutor:
+    """
+    Responsible for executing async tasks
+    """
     @staticmethod
-    async def handle_request(url: str) -> dict[str, list[str]]:
+    async def fetch_links(url: str) -> dict[str, list[str]]:
+        """
+        Fetches all links from the same host from url
+        :param url:
+        :return:
+        """
         try:
             res = await StaticScrapper(url).fetch()
         except ClientResponseError as e:
