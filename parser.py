@@ -10,6 +10,10 @@ class HTMLParser:
     def __init__(self, content: str):
         self.content = content
         self.tree = html.fromstring(self.content)
+        if url:
+            if not self._is_url_valid(url):
+                raise URLFormattingException
+            self.tree.make_links_absolute(url)
 
     def extract_links(self, base_url: str = None, domain:str = None) -> dict[str, set[str]]:
         """
@@ -25,9 +29,11 @@ class HTMLParser:
 
         for element, attribute, link, pos in self.tree.iterlinks():
             if element.tag == 'a' and attribute == "href":
-                link_domain, url = self._extract_domain(link), self._normalize_url(link)
-                if link_domain is None and domain:
-                    link_domain = domain
+                try:
+                    link_domain, url = self._extract_domain_from_url(link), self._normalize_url(link)
+                except URLFormattingException as e:
+                    logger.error(f"{link}: {e}")
+                    continue
 
                 domain_links = links.get(link_domain, set())
                 domain_links.add(url)
@@ -92,6 +98,24 @@ class HTMLParser:
         normalized = urlunparse((scheme, netloc, path, params, query, ''))
         return normalized
 
+    @staticmethod
+    def _is_url_valid(url: str) -> bool:
+        url_regex = re.compile(
+             r'(?:https?://)?(?:www\.)?([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*(?:\.[a-zA-Z]{2,}))(?:/[^\s]*)?/?',
+            re.IGNORECASE
+        )
+
+        return bool(url_regex.match(url))
+
+    @staticmethod
+    def _is_domain_valid(domain: str) -> bool:
+        domain_regex = re.compile(
+            r'^(?:[a-zA-Z0-9]'  # First character of the domain
+            r'(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+'  # Sub domain + hostname
+            r'[a-zA-Z]{2,}$'  # TLD
+        )
+
+        return bool(domain_regex.match(domain))
 
 class RobotsParser:
     def __init__(self, host: str):
