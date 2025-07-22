@@ -22,7 +22,7 @@ class Scheduler:
 
     def add_links_to_queue(self, task: asyncio.Task[dict[str, set[str]]]) -> None:
         """
-        Done callback for _runner.handle_request(url). Adds parsed links
+        Done callback for _executor.handle_request(url). Adds parsed links
         from the `url` page
         :param task: executed task
         :return:

@@ -46,7 +46,7 @@ class TaskExecutor:
             return {}
 
         try:
-            parser = HTMLParser(res.html)
+            parser = HTMLParser(res.html, url)
             links = parser.extract_same_domain_links(url)
             return links
         except ParserError as e:
