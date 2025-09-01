@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 import json
 import os
 
+CONFIG_FILEPATH = "../scrapper.json"
 
 @dataclass(init=False)
 class ScrapperConfig:
@@ -36,8 +37,6 @@ class ScrapperConfig:
 
     @staticmethod
     def _load_config_data(url: str) -> dict:
-        CONFIG_FILEPATH = "scrapper.json"
-
         if not os.path.exists(CONFIG_FILEPATH):
             print("scrapper.json doesn't exist, loading default parameters")
             return {"url": url}
